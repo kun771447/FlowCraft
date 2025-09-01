@@ -11,12 +11,16 @@ import {
   handleBlur,
 } from "./interactive-action";
 
+import { throttle } from "./util";
+
+const throttleScroll = throttle(handleScroll, 100);
+
 // 启动录制器函数
 function startRecorder() {
   document.addEventListener("click", handleCustomClick, true);
   document.addEventListener("input", handleInput, true);
   document.addEventListener("keydown", handleKeydown, true);
-  document.addEventListener("scroll", handleScroll, true);
+  document.addEventListener("scroll", throttleScroll, true);
 
   document.addEventListener("mouseover", handleMouseOver, true);
   document.addEventListener("mouseout", handleMouseOut, true);
@@ -30,6 +34,8 @@ function stopRecorder() {
   document.removeEventListener("click", handleCustomClick, true);
   document.removeEventListener("input", handleInput, true);
   document.removeEventListener("keydown", handleKeydown, true);
+  document.removeEventListener("scroll", throttleScroll, true);
+
   document.removeEventListener("mouseover", handleMouseOver, true);
   document.removeEventListener("mouseout", handleMouseOut, true);
   document.removeEventListener("focus", handleFocus, true);
