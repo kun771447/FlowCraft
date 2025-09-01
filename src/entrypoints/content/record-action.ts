@@ -1,8 +1,84 @@
-import { getXPath, getEnhancedCSSSelector } from "./util";
+import {
+  getXPath,
+  getEnhancedCSSSelector,
+  getEventTarget,
+  parentElement,
+} from "./util";
+
+// 获取窗口滚动位置 - 兼容不同浏览器的滚动位置获取方式
+export function getWindowScroll(win: Window) {
+  const doc = win.document;
+  return {
+    left: doc.scrollingElement
+      ? doc.scrollingElement.scrollLeft // 现代浏览器使用 scrollingElement
+      : win.pageXOffset !== undefined
+      ? win.pageXOffset // 兼容旧版浏览器
+      : doc.documentElement.scrollLeft ||
+        (doc?.body && parentElement(doc.body)?.scrollLeft) ||
+        doc?.body?.scrollLeft ||
+        0,
+    top: doc.scrollingElement
+      ? doc.scrollingElement.scrollTop // 现代浏览器使用 scrollingElement
+      : win.pageYOffset !== undefined
+      ? win.pageYOffset // 兼容旧版浏览器
+      : doc?.documentElement.scrollTop ||
+        (doc?.body && parentElement(doc.body)?.scrollTop) ||
+        doc?.body?.scrollTop ||
+        0,
+  };
+}
 
 export function handleScroll(event: Event) {
-  console.log("event", event);
-  console.log("event", event.target);
+  const target = getEventTarget(event) as HTMLElement | Document;
+
+  console.log('handleScroll', target);
+  if (!target) return;
+
+  try {
+    let scrollData = {};
+    // 安全获取frameUrl，处理跨域情况
+    let frameUrl: string;
+    try {
+      frameUrl = window.location.href;
+    } catch (error) {
+      // 跨域访问失败时的fallback
+      frameUrl = document.location.href || "about:blank";
+    }
+
+    const doc = document;
+    if (target === doc && doc.defaultView) {
+      // 窗口滚动 - 获取窗口的滚动位置
+      const scrollLeftTop = getWindowScroll(doc.defaultView);
+
+      scrollData = {
+        elementTag: 'document',
+        timestamp: Date.now(),
+        url: document.location.href,
+        frameUrl: frameUrl,
+        x: scrollLeftTop.left, // 水平滚动位置
+        y: scrollLeftTop.top, // 垂直滚动位置
+      };
+    } else {
+      const xpath = getXPath(target as HTMLElement);
+
+      // 元素滚动 - 获取元素的滚动位置
+      scrollData = {
+        timestamp: Date.now(),
+        url: document.location.href,
+        frameUrl: frameUrl,
+        xpath: xpath,
+        cssSelector: getEnhancedCSSSelector(target as HTMLElement, xpath),
+        elementTag: (target as HTMLElement).tagName,
+        x: (target as HTMLElement).scrollLeft, // 元素水平滚动位置
+        y: (target as HTMLElement).scrollTop, // 元素垂直滚动位置
+      };
+    }
+
+    chrome.runtime.sendMessage({
+      type: "CUSTOM_SCROLL_EVENT",
+      payload: scrollData,
+    });
+  } catch (error) {}
 }
 
 export function handleCustomClick(event: MouseEvent) {
@@ -17,7 +93,7 @@ export function handleCustomClick(event: MouseEvent) {
       frameUrl = window.location.href;
     } catch (error) {
       // 跨域访问失败时的fallback
-      frameUrl = document.location.href || 'about:blank';
+      frameUrl = document.location.href || "about:blank";
     }
 
     const clickData = {
@@ -51,7 +127,7 @@ export function handleInput(event: Event) {
     try {
       frameUrl = window.location.href;
     } catch (error) {
-      frameUrl = document.location.href || 'about:blank';
+      frameUrl = document.location.href || "about:blank";
     }
 
     const inputData = {
@@ -130,7 +206,7 @@ export function handleKeydown(event: KeyboardEvent) {
       try {
         frameUrl = window.location.href;
       } catch (error) {
-        frameUrl = document.location.href || 'about:blank';
+        frameUrl = document.location.href || "about:blank";
       }
 
       const keyData = {
