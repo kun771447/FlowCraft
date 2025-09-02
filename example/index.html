@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>多滚动条演示页面</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .section {
+        background: rgba(255, 255, 255, 0.9);
+        margin: 20px 0;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .section h2 {
+        color: #4a5568;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 5px;
+      }
+
+      /* 1. 垂直滚动容器 */
+      .vertical-scroll {
+        height: 300px;
+        overflow-y: scroll;
+        border: 2px solid #667eea;
+        padding: 15px;
+        background: #f7fafc;
+        border-radius: 8px;
+      }
+
+      .vertical-content {
+        height: 800px;
+        background: linear-gradient(
+          to bottom,
+          #ff9a9e 0%,
+          #fecfef 50%,
+          #fecfef 100%
+        );
+        padding: 20px;
+        border-radius: 5px;
+      }
+
+      /* 2. 水平滚动容器 */
+      .horizontal-scroll {
+        width: 100%;
+        overflow-x: scroll;
+        border: 2px solid #48bb78;
+        padding: 15px;
+        background: #f0fff4;
+        border-radius: 8px;
+      }
+
+      .horizontal-content {
+        width: 1500px;
+        height: 150px;
+        background: linear-gradient(to right, #ffecd2 0%, #fcb69f 100%);
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        padding: 20px;
+        border-radius: 5px;
+      }
+
+      .horizontal-item {
+        min-width: 200px;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #2d3748;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 3. 双向滚动容器 */
+      .both-scroll {
+        width: 100%;
+        height: 250px;
+        overflow: auto;
+        border: 2px solid #ed8936;
+        background: #fffaf0;
+        border-radius: 8px;
+      }
+
+      .both-content {
+        width: 1200px;
+        height: 600px;
+        background: linear-gradient(45deg, #ff9a56 0%, #ff6b95 100%);
+        padding: 20px;
+        border-radius: 5px;
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+      }
+
+      .grid-item {
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+        font-weight: bold;
+        color: #2d3748;
+      }
+
+      /* 4. 嵌套滚动容器 */
+      .nested-scroll-outer {
+        height: 300px;
+        overflow-y: scroll;
+        border: 2px solid #9f7aea;
+        background: #faf5ff;
+        padding: 15px;
+        border-radius: 8px;
+      }
+
+      .nested-scroll-inner {
+        width: 80%;
+        height: 150px;
+        overflow: auto;
+        border: 2px solid #805ad5;
+        background: #e9d8fd;
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 5px;
+      }
+
+      .nested-content {
+        width: 400px;
+        height: 300px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 5px;
+      }
+
+      /* 5. 文本内容区域 */
+      .text-content {
+        height: 200px;
+        overflow-y: scroll;
+        border: 2px solid #38b2ac;
+        background: #e6fffa;
+        padding: 15px;
+        border-radius: 8px;
+      }
+
+      .text-content p {
+        margin-bottom: 15px;
+        text-align: justify;
+      }
+
+      /* 交互按钮 */
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin: 20px 0;
+        justify-content: center;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 25px;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      /* 滚动条样式 */
+      ::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        border-radius: 10px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(45deg, #764ba2, #667eea);
+      }
+
+      /* 响应式设计 */
+      @media (max-width: 768px) {
+        .container {
+          padding: 10px;
+        }
+
+        .horizontal-content {
+          width: 1000px;
+        }
+
+        .both-content {
+          width: 800px;
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+
+      /* 长内容生成 */
+      .long-content {
+        height: 1500px;
+        background: linear-gradient(
+          to bottom,
+          #ff9a9e 0%,
+          #fad0c4 20%,
+          #ffd1ff 40%,
+          #a8e6cf 60%,
+          #dcedc1 80%,
+          #ffd3a5 100%
+        );
+        padding: 20px;
+      }
+
+      .content-block {
+        background: rgba(255, 255, 255, 0.8);
+        margin: 20px 0;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🎯 多滚动条演示页面</h1>
+        <p>测试各种滚动场景和回放功能</p>
+      </div>
+
+      <div class="controls">
+        <button class="btn" onclick="scrollToTop()">回到顶部</button>
+        <button class="btn" onclick="scrollToMiddle()">滚动到中间</button>
+        <button class="btn" onclick="scrollToBottom()">滚动到底部</button>
+        <button class="btn" onclick="resetAllScrolls()">重置所有滚动</button>
+      </div>
+
+      <div class="section">
+        <h2>1. 📝 垂直滚动容器</h2>
+        <div class="vertical-scroll" id="vertical-scroll">
+          <div class="vertical-content">
+            <h3>垂直滚动内容</h3>
+            <p>
+              这是一个垂直滚动的容器，包含大量内容。你可以使用鼠标滚轮或滚动条来滚动查看内容。
+            </p>
+            <div class="content-block">
+              <h4>内容块 1</h4>
+              <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+                eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              </p>
+            </div>
+            <div class="content-block">
+              <h4>内容块 2</h4>
+              <p>
+                Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                laboris nisi ut aliquip ex ea commodo consequat.
+              </p>
+            </div>
+            <div class="content-block">
+              <h4>内容块 3</h4>
+              <p>
+                Duis aute irure dolor in reprehenderit in voluptate velit esse
+                cillum dolore eu fugiat nulla pariatur.
+              </p>
+            </div>
+            <div class="content-block">
+              <h4>内容块 4</h4>
+              <p>
+                Excepteur sint occaecat cupidatat non proident, sunt in culpa
+                qui officia deserunt mollit anim id est laborum.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>2. ↔️ 水平滚动容器</h2>
+        <div class="horizontal-scroll" id="horizontal-scroll">
+          <div class="horizontal-content">
+            <div class="horizontal-item">项目 1</div>
+            <div class="horizontal-item">项目 2</div>
+            <div class="horizontal-item">项目 3</div>
+            <div class="horizontal-item">项目 4</div>
+            <div class="horizontal-item">项目 5</div>
+            <div class="horizontal-item">项目 6</div>
+            <div class="horizontal-item">项目 7</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>3. 🔄 双向滚动容器</h2>
+        <div class="both-scroll" id="both-scroll">
+          <div class="both-content">
+            <div class="grid-item">A1</div>
+            <div class="grid-item">B1</div>
+            <div class="grid-item">C1</div>
+            <div class="grid-item">D1</div>
+            <div class="grid-item">E1</div>
+            <div class="grid-item">F1</div>
+            <div class="grid-item">A2</div>
+            <div class="grid-item">B2</div>
+            <div class="grid-item">C2</div>
+            <div class="grid-item">D2</div>
+            <div class="grid-item">E2</div>
+            <div class="grid-item">F2</div>
+            <div class="grid-item">A3</div>
+            <div class="grid-item">B3</div>
+            <div class="grid-item">C3</div>
+            <div class="grid-item">D3</div>
+            <div class="grid-item">E3</div>
+            <div class="grid-item">F3</div>
+            <div class="grid-item">A4</div>
+            <div class="grid-item">B4</div>
+            <div class="grid-item">C4</div>
+            <div class="grid-item">D4</div>
+            <div class="grid-item">E4</div>
+            <div class="grid-item">F4</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>4. 🪆 嵌套滚动容器</h2>
+        <div class="nested-scroll-outer" id="nested-outer">
+          <h3>外层滚动容器</h3>
+          <p>这是外层的滚动容器，包含多个内层滚动容器。</p>
+
+          <div class="nested-scroll-inner" id="nested-inner-1">
+            <div class="nested-content">
+              <h4>内层滚动 1</h4>
+              <p>
+                这是第一个内层滚动容器的内容。内容足够长，需要滚动才能看完。
+              </p>
+              <p>可以测试嵌套滚动的回放功能。</p>
+              <p>更多内容...</p>
+              <p>继续滚动查看...</p>
+            </div>
+          </div>
+
+          <div class="nested-scroll-inner" id="nested-inner-2">
+            <div class="nested-content">
+              <h4>内层滚动 2</h4>
+              <p>这是第二个内层滚动容器的内容。</p>
+              <p>每个内层容器都可以独立滚动。</p>
+              <p>测试多层嵌套滚动...</p>
+              <p>底部内容</p>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h4>外层内容块</h4>
+            <p>这是外层滚动容器中的固定内容块。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>5. 📖 文本滚动区域</h2>
+        <div class="text-content" id="text-scroll">
+          <p>
+            这是一个文本滚动区域，包含大量的文本内容。适合测试文本阅读场景下的滚动回放。
+          </p>
+          <p>
+            在Web开发中，滚动是用户交互的重要组成部分。用户通过滚动来浏览长内容、查看列表项、或者在大型数据表格中导航。
+          </p>
+          <p>
+            自动化测试和回放系统需要准确记录和重现这些滚动操作，以确保用户体验的一致性。
+          </p>
+          <p>
+            不同类型的滚动包括：页面滚动、容器滚动、水平滚动、垂直滚动、以及程序化滚动。
+          </p>
+          <p>
+            现代浏览器提供了丰富的滚动API，如scrollTo、scrollBy、scrollIntoView等方法。
+          </p>
+          <p>
+            CSS也提供了overflow属性来控制元素的滚动行为：visible、hidden、scroll、auto等值。
+          </p>
+          <p>
+            响应式设计中，滚动行为在不同设备上可能有所不同，需要特别注意移动端的触摸滚动。
+          </p>
+          <p>
+            性能优化方面，长列表的虚拟滚动是一个重要的技术，可以显著提升大数据量场景的渲染性能。
+          </p>
+          <p>可访问性设计中，滚动操作需要考虑键盘导航和屏幕阅读器的支持。</p>
+          <p>这就是文本滚动区域的底部内容。</p>
+        </div>
+      </div>
+
+      <!-- 主页面滚动内容 -->
+      <div class="section">
+        <h2>6. 🌍 主页面滚动内容</h2>
+        <div class="long-content">
+          <div class="content-block">
+            <h3>页面滚动测试区域</h3>
+            <p>
+              这部分内容用于测试整个页面的滚动功能。内容足够长，需要滚动整个页面才能看完。
+            </p>
+          </div>
+
+          <div class="content-block">
+            <h3>滚动测试说明</h3>
+            <p>1. 使用鼠标滚轮测试垂直滚动</p>
+            <p>2. 使用Shift+滚轮测试水平滚动（如果支持）</p>
+            <p>3. 使用键盘方向键测试滚动</p>
+            <p>4. 使用Page Up/Page Down测试页面滚动</p>
+            <p>5. 使用Home/End测试快速滚动到顶部/底部</p>
+          </div>
+
+          <div class="content-block">
+            <h3>回放功能测试</h3>
+            <p>录制各种滚动操作后，可以通过回放功能重现用户的滚动行为。</p>
+            <p>包括滚动位置、滚动速度、滚动目标等信息的准确重现。</p>
+          </div>
+
+          <div class="content-block">
+            <h3>更多测试内容</h3>
+            <p>继续添加更多内容来测试长页面滚动...</p>
+            <p>测试不同滚动位置的回放准确性...</p>
+            <p>验证滚动动画和平滑滚动的处理...</p>
+          </div>
+
+          <div class="content-block">
+            <h3>底部内容</h3>
+            <p>这是页面的底部内容，用于测试滚动到底部的功能。</p>
+            <p>回放时应该能够准确地滚动到这个位置。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ===== RRWEB 滚动事件监听机制 =====
+
+      // RRWEB 监听滚动事件的代码：
+      // 1. 监听页面滚动
+      document.addEventListener(
+        "scroll",
+        function (event) {
+          console.log("event", event);
+          // 通过 composedPath 获取实际滚动的元素
+          const actualTarget = event.composedPath()[0];
+
+          // 处理滚动事件
+          if (actualTarget === window || actualTarget === document) {
+            // 页面滚动
+            console.log("页面滚动:", window.pageXOffset, window.pageYOffset);
+          } else {
+            // 元素滚动
+            console.log(
+              "元素滚动:",
+              actualTarget,
+              actualTarget.scrollLeft,
+              actualTarget.scrollTop
+            );
+          }
+        },
+        { passive: true, capture: true }
+      );
+    </script>
+  </body>
+</html>

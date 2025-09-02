@@ -24,20 +24,6 @@ export interface StoredCustomInputEvent {
   screenshot?: string;
 }
 
-export interface StoredCustomSelectEvent {
-  timestamp: number;
-  url: string;
-  frameUrl: string;
-  xpath: string;
-  cssSelector?: string;
-  elementTag: string;
-  selectedValue: string;
-  selectedText: string;
-  tabId: number;
-  messageType: "CUSTOM_SELECT_EVENT";
-  screenshot?: string;
-}
-
 export interface StoredCustomKeyEvent {
   timestamp: number;
   url: string;
@@ -48,6 +34,20 @@ export interface StoredCustomKeyEvent {
   elementTag?: string;
   tabId: number;
   messageType: "CUSTOM_KEY_EVENT";
+  screenshot?: string;
+}
+
+export interface StoredCustomScrollEvent {
+  timestamp: number;
+  url: string;
+  frameUrl: string;
+  xpath?: string;
+  cssSelector?: string;
+  elementTag?: string;
+  scrollX: number;
+  scrollY: number;
+  tabId: number;
+  messageType: "CUSTOM_SCROLL_EVENT";
   screenshot?: string;
 }
 
@@ -79,8 +79,8 @@ export interface StoredRrwebEvent {
 export type StoredEvent =
   | StoredCustomClickEvent
   | StoredCustomInputEvent
-  | StoredCustomSelectEvent
   | StoredCustomKeyEvent
+  | StoredCustomScrollEvent
   | StoredTabEvent
   | StoredRrwebEvent;
 

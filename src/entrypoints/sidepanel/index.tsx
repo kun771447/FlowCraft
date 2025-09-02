@@ -4,26 +4,33 @@ import ReactDOM from "react-dom/client";
 // import vite tailwind css
 import "@/assets/tailwind.css";
 
+import { ErrorView } from "./components/error-view";
+import { InitialView } from "./components/initial-view";
+import { LoadingView } from "./components/logina-view";
+import { RecordingView } from "./components/recording-view";
+import { StoppedView } from "./components/stopped-view";
 import { WorkflowProvider, useWorkflow } from "./context/workflow-provider";
 
 const AppContent: React.FC = () => {
-  const { recordingStatus, isLoading, error, startRecording, stopRecording } =
-    useWorkflow();
+  const { recordingStatus, isLoading, error } = useWorkflow();
 
-  const handleClick = () => {
-    if (isLoading) {
-      startRecording();
-    } else {
-      stopRecording();
-    }
-  };
-  return (
-    <>
-      <button onClick={handleClick} className="m-[20px]">
-        {isLoading ? "Stop Recording" : "Start Recording"}
-      </button>
-    </>
-  );
+  if (isLoading) {
+    return <LoadingView />;
+  }
+
+  if (error) {
+    return <ErrorView />;
+  }
+
+  switch (recordingStatus) {
+    case "recording":
+      return <RecordingView />;
+    case "stopped":
+      return <StoppedView />;
+    case "idle":
+    default:
+      return <InitialView />;
+  }
 };
 
 const SidepanelApp: React.FC = () => {

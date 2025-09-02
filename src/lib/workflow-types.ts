@@ -64,10 +64,14 @@ export interface KeyPressStep extends BaseStep {
 
 export interface ScrollStep extends BaseStep {
   type: "scroll"; // Changed from scroll_update for simplicity
-  targetId: number; // The rrweb ID of the element being scrolled
   scrollX: number;
   scrollY: number;
-  // Note: url might be missing if scroll happens on initial load before meta event?
+  url?: string; // URL where scroll happened
+  frameUrl?: string; // Frame URL where scroll happened
+  xpath?: string; // XPath of scrolled element
+  cssSelector?: string; // CSS selector of scrolled element
+  elementTag?: string; // Tag name of scrolled element
+  screenshot?: string; // Screenshot of the action
 }
 
 // Potential future step types based on StoredEvent

@@ -55,8 +55,8 @@ export function handleScroll(event: Event) {
         timestamp: Date.now(),
         url: document.location.href,
         frameUrl: frameUrl,
-        x: scrollLeftTop.left, // 水平滚动位置
-        y: scrollLeftTop.top, // 垂直滚动位置
+        scrollX: scrollLeftTop.left, // 水平滚动位置
+        scrollY: scrollLeftTop.top, // 垂直滚动位置
       };
     } else {
       const xpath = getXPath(target as HTMLElement);
@@ -69,8 +69,8 @@ export function handleScroll(event: Event) {
         xpath: xpath,
         cssSelector: getEnhancedCSSSelector(target as HTMLElement, xpath),
         elementTag: (target as HTMLElement).tagName,
-        x: (target as HTMLElement).scrollLeft, // 元素水平滚动位置
-        y: (target as HTMLElement).scrollTop, // 元素垂直滚动位置
+        scrollX: (target as HTMLElement).scrollLeft, // 元素水平滚动位置
+        scrollY: (target as HTMLElement).scrollTop, // 元素垂直滚动位置
       };
     }
 

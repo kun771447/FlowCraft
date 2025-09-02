@@ -22,6 +22,7 @@ type WorkflowContextType = WorkflowState & {
   discardAndStartNew: () => void;
   selectEvent: (index: number) => void;
   fetchWorkflowData: (isPolling?: boolean) => void; // Add optional flag
+  handleReplay: () => void
 };
 
 const WorkflowContext = createContext<WorkflowContextType | undefined>(
@@ -51,7 +52,10 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({
       const data = await chrome.runtime.sendMessage({
         type: "GET_RECORDING_DATA",
       });
-
+      console.log(
+        "Received workflow data from background (polling=" + isPolling + "):",
+        data
+      );
       if (data && data.workflow && data.recordingStatus) {
         // Always update workflow when fetching (polling or not)
         setWorkflow(data.workflow);
@@ -109,7 +113,12 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({
 
     // Listener for status updates pushed from the background script
     const messageListener = (message: any, sender: any, sendResponse: any) => {
+      console.log("Sidepanel received message:", message);
       if (message.type === "recording_status_updated") {
+        console.log(
+          "Recording status updated message received:",
+          message.payload
+        );
         const newStatus = message.payload.status;
         // Use functional update to get previous status reliably
         setRecordingStatus((prevStatus) => {
@@ -132,7 +141,7 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({
       pollingIntervalId = setInterval(() => {
         fetchWorkflowData(true); // Fetch updates in the background (polling)
       }, POLLING_INTERVAL);
-
+      console.log(`Polling started (Interval ID: ${pollingIntervalId})`);
     }
     // --- End Polling Logic ---
 
@@ -141,7 +150,9 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({
       chrome.runtime.onMessage.removeListener(messageListener);
       if (pollingIntervalId) {
         clearInterval(pollingIntervalId);
-
+        console.log(
+          `Polling stopped (Cleared Interval ID: ${pollingIntervalId})`
+        );
       }
     };
     // Keep dependencies: fetchWorkflowData is stable now,
@@ -164,7 +175,7 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({
         setRecordingStatus("error");
         setIsLoading(false); // Stop loading on error
       } else {
-
+        console.log("Start recording acknowledged by background.");
         // State updates happen via broadcast + fetch
       }
     });
@@ -184,7 +195,7 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({
         setRecordingStatus("error");
         setIsLoading(false); // Stop loading on error
       } else {
-
+        console.log("Stop recording acknowledged by background.");
         // State updates happen via broadcast + fetch
       }
     });
@@ -198,6 +209,18 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({
     setCurrentEventIndex(index);
   }, []);
 
+  const handleReplay = () => {
+    chrome.runtime.sendMessage({ type: "START_PLAYBACK", payload: { workflow: workflow } }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("Error starting playback:", chrome.runtime.lastError);
+      } else if (response.success) {
+        console.log("Playback started successfully");
+      } else {
+        console.error("Playback failed:", response.error);
+      }
+    });
+  }
+
   const value = {
     workflow,
     recordingStatus,
@@ -209,6 +232,7 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({
     discardAndStartNew,
     selectEvent,
     fetchWorkflowData,
+    handleReplay
   };
 
   return (

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iframe 百度嵌入测试页面</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(45deg, #4299e1, #3182ce);
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .header h1 {
+        margin-bottom: 10px;
+        font-size: 2em;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 1.1em;
+      }
+
+      .controls {
+        background: #f8f9fa;
+        padding: 15px;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 25px;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 14px;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn.secondary {
+        background: linear-gradient(45deg, #48bb78, #38a169);
+      }
+
+      .btn.danger {
+        background: linear-gradient(45deg, #f56565, #e53e3e);
+      }
+
+      .iframe-container {
+        position: relative;
+        width: 100%;
+        height: 600px;
+        background: #fff;
+      }
+
+      .iframe-wrapper {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: #fff;
+      }
+
+      .loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #666;
+        font-size: 18px;
+      }
+
+      .event-log {
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 20px;
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .event-log h3 {
+        color: #4299e1;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #4a5568;
+        padding-bottom: 5px;
+      }
+
+      .event-item {
+        margin-bottom: 8px;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+        border-left: 3px solid #4299e1;
+      }
+
+      .event-time {
+        color: #a0aec0;
+        font-size: 11px;
+      }
+
+      .event-type {
+        color: #48bb78;
+        font-weight: bold;
+      }
+
+      .event-details {
+        color: #e2e8f0;
+        margin-top: 4px;
+      }
+
+      .stats {
+        background: #f8f9fa;
+        padding: 15px;
+        border-top: 1px solid #e9ecef;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+      }
+
+      .stat-item {
+        text-align: center;
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #4299e1;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+      }
+
+      .error-message {
+        background: #fed7d7;
+        color: #c53030;
+        padding: 15px;
+        margin: 15px;
+        border-radius: 8px;
+        border: 1px solid #feb2b2;
+      }
+
+      .success-message {
+        background: #c6f6d5;
+        color: #2f855a;
+        padding: 15px;
+        margin: 15px;
+        border-radius: 8px;
+        border: 1px solid #9ae6b4;
+      }
+
+      /* 滚动条样式 */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #4299e1;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #3182ce;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+             <div class="header">
+         <h1>🖼️ iframe 跨域测试</h1>
+         <p>监控 iframe 内的用户交互事件</p>
+       </div>
+
+      <div class="controls">
+        <button class="btn" onclick="loadBaidu()">加载百度</button>
+        <button class="btn secondary" onclick="clearLog()">清空日志</button>
+        <button class="btn" onclick="toggleEventLog()">切换日志显示</button>
+        <button class="btn secondary" onclick="exportLog()">导出日志</button>
+        <button class="btn danger" onclick="resetStats()">重置统计</button>
+      </div>
+
+      <div class="iframe-container">
+                 <div class="loading" id="loading">正在加载测试页面...</div>
+                 <iframe
+           id="baidu-iframe"
+           class="iframe-wrapper"
+           src="https://example.com"
+           title="测试页面"
+           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+         >
+         </iframe>
+      </div>
+
+      <div class="stats" id="stats">
+        <div class="stat-item">
+          <div class="stat-number" id="click-count">0</div>
+          <div class="stat-label">点击事件</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="input-count">0</div>
+          <div class="stat-label">输入事件</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="scroll-count">0</div>
+          <div class="stat-label">滚动事件</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="focus-count">0</div>
+          <div class="stat-label">焦点事件</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="total-events">0</div>
+          <div class="stat-label">总事件数</div>
+        </div>
+      </div>
+
+      <div class="event-log" id="event-log">
+        <h3>📊 事件日志</h3>
+        <div id="log-content">
+          <div class="event-item">
+            <div class="event-time">页面加载中...</div>
+            <div class="event-type">系统</div>
+            <div class="event-details">等待 iframe 加载完成</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 全局事件监听
+      document.addEventListener(
+        "click",
+        function (e) {
+          console.log("点击事件:", e.target);
+          console.log("元素信息:", {
+            tagName: e.target.tagName,
+            id: e.target.id,
+            className: e.target.className,
+            textContent: e.target.textContent?.substring(0, 50),
+          });
+        },
+        true
+      ); // 使用捕获阶段
+
+             // 监听 iframe 加载
+       const iframe = document.getElementById('baidu-iframe');
+       iframe.onload = function() {
+         console.log('iframe 加载完成');
+         
+         try {
+           const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+           
+           // 在 iframe 内也添加事件监听
+           iframeDoc.addEventListener('click', function(e) {
+             console.log('iframe 内点击事件:', e.target);
+             console.log('iframe 元素信息:', {
+               tagName: e.target.tagName,
+               id: e.target.id,
+               className: e.target.className,
+               textContent: e.target.textContent?.substring(0, 50)
+             });
+           }, true);
+           
+         } catch (error) {
+           console.log('无法访问 iframe 内容（跨域限制）:', error.message);
+         }
+       };
+    </script>
+  </body>
+</html>
