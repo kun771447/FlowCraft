@@ -69,7 +69,7 @@ async function findElementByXPath(
             let element = null;
             
             // 优先使用 cssSelector 查找元素，支持多元素文本匹配
-            if ('${cssSelector}') {
+            if ('${elementText}' && '${cssSelector}') {
               const elements = document.querySelectorAll('${cssSelector}');
               const targetText = '${elementText}';
               
@@ -83,9 +83,6 @@ async function findElementByXPath(
                       break;
                     }
                   }
-                } else {
-                  // 如果没有提供 elementText，取第一个元素
-                  element = elements[0];
                 }
               }
             }
@@ -294,6 +291,7 @@ export async function scrollElement(params: any, tabId: number): Promise<void> {
             // XPath evaluation failed
           }
         }
+        console.log("scrollElement", xpath, element);
 
         if (!element && cssSelector) {
           try {
