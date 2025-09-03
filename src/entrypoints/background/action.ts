@@ -42,6 +42,8 @@ async function sendCommandToDebugger<T = any>(
 async function findElementByXPath(
   tabId: number,
   xpath: string,
+  cssSelector: string,
+  elementText: string,
   options: {
     retryCount?: number;      // 重试次数，默认 3
     retryInterval?: number;   // 重试间隔时间(ms)，默认 1000ms
@@ -64,17 +66,41 @@ async function findElementByXPath(
       const result = await sendCommandToDebugger(tabId, "Runtime.evaluate", {
         expression: `(() => {
           try {
-            // 使用 document.evaluate 评估 XPath 表达式
-            const result = document.evaluate(
-              '${xpath}', 
-              document, 
-              null, 
-              XPathResult.FIRST_ORDERED_NODE_TYPE, 
-              null
-            );
+            let element = null;
             
-            // 获取匹配的第一个节点
-            const element = result.singleNodeValue;
+            // 优先使用 cssSelector 查找元素，支持多元素文本匹配
+            if ('${cssSelector}') {
+              const elements = document.querySelectorAll('${cssSelector}');
+              const targetText = '${elementText}';
+              
+              if (elements.length > 0) {
+                if (targetText) {
+                  // 如果提供了 elementText，查找文本匹配的元素
+                  for (const el of elements) {
+                    const elText = el.textContent?.trim().slice(0, 200) || '';
+                    if (elText === targetText) {
+                      element = el;
+                      break;
+                    }
+                  }
+                } else {
+                  // 如果没有提供 elementText，取第一个元素
+                  element = elements[0];
+                }
+              }
+            }
+            
+            // 如果 cssSelector 没找到元素，使用 XPath 作为后备
+            if (!element && '${xpath}') {
+              const result = document.evaluate(
+                '${xpath}', 
+                document, 
+                null, 
+                XPathResult.FIRST_ORDERED_NODE_TYPE, 
+                null
+              );
+              element = result.singleNodeValue;
+            }
             
             if (!element) {
               return null;
@@ -189,10 +215,11 @@ export async function clickElement(params: any, tabId: number): Promise<void> {
   try {
     const xpath = params.xpath || "";
     const cssSelector = params.cssSelector || "";
+    const elementText = params.elementText || "";
     const retryCount = params.retryCount || 3;
     const retryInterval = params.retryInterval || 1000;
 
-    const elementInfo = await findElementByXPath(tabId, xpath, {
+    const elementInfo = await findElementByXPath(tabId, xpath, cssSelector, elementText, {
       retryCount,
       retryInterval
     });
