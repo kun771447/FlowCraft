@@ -1,12 +1,8 @@
 // --- 生成元素 XPath 的辅助函数 ---
 export function getXPath(element: HTMLElement): string {
-  // 如果元素有 id,直接返回 id 选择器
-  if (element.id !== "") {
-    return `id("${element.id}")`;
-  }
   // 如果是 body 元素,直接返回标签名
   if (element === document.body) {
-    return element.tagName.toLowerCase();
+    return 'html/' + element.tagName.toLowerCase();
   }
 
   let ix = 0; // 相同标签名的元素索引

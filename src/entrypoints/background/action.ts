@@ -46,7 +46,17 @@ async function findElementByXPath(
     retryCount?: number;      // 重试次数，默认 3
     retryInterval?: number;   // 重试间隔时间(ms)，默认 1000ms
   } = {}
-): Promise<{ x: number; y: number; width: number; height: number; text: string; tagName: string } | null> {
+): Promise<{ 
+  x: number; 
+  y: number; 
+  width: number; 
+  height: number; 
+  text: string; 
+  tagName: string;
+  isVisible: boolean;
+  isOnTop: boolean;
+  canClick: boolean;
+} | null> {
   const { retryCount = 3, retryInterval = 1000 } = options;
   
   for (let attempt = 0; attempt <= retryCount; attempt++) {
@@ -56,7 +66,7 @@ async function findElementByXPath(
           try {
             // 使用 document.evaluate 评估 XPath 表达式
             const result = document.evaluate(
-              ${JSON.stringify(xpath)}, 
+              '${xpath}', 
               document, 
               null, 
               XPathResult.FIRST_ORDERED_NODE_TYPE, 
@@ -70,9 +80,53 @@ async function findElementByXPath(
               return null;
             }
             
+            // 检测函数：元素是否可见
+            function isElementVisible(element) {
+              const style = window.getComputedStyle(element);
+              return (
+                element.offsetWidth > 0 &&
+                element.offsetHeight > 0 &&
+                style.visibility !== "hidden" &&
+                style.display !== "none" &&
+                parseFloat(style.opacity) > 0
+              );
+            }
+
+            // 检测函数：元素是否在顶层（未被遮挡）
+            function isElementOnTop(element) {
+              const rect = element.getBoundingClientRect();
+              const centerX = rect.left + rect.width / 2;
+              const centerY = rect.top + rect.height / 2;
+              
+              try {
+                const topEl = document.elementFromPoint(centerX, centerY);
+                if (!topEl) return false;
+
+                // 检查是否是同一个元素或其子元素
+                let current = topEl;
+                while (current && current !== document.documentElement) {
+                  if (current === element) return true;
+                  current = current.parentElement;
+                }
+                return false;
+              } catch (e) {
+                // 如果出错，保守返回 true
+                return true;
+              }
+            }
+
             // 获取元素位置
             const rect = element.getBoundingClientRect();
+            
+            // 执行检测
+            const isVisible = isElementVisible(element);
+            const isOnTop = isVisible ? isElementOnTop(element) : false;
+
+            console.log('elementInfo', isVisible, isOnTop);
             return {
+              isVisible: isVisible,
+              isOnTop: isOnTop,
+              canClick: isVisible && isOnTop,
               x: rect.left + rect.width / 2,
               y: rect.top + rect.height / 2,
               width: rect.width,
@@ -87,7 +141,8 @@ async function findElementByXPath(
         returnByValue: true,
       });
 
-      if (result?.result?.value) {
+      console.log('result?.result?.value', result?.result?.value);
+      if (result?.result?.value?.canClick) {
         return result.result.value;
       }
 
@@ -137,13 +192,21 @@ export async function clickElement(params: any, tabId: number): Promise<void> {
     const retryCount = params.retryCount || 3;
     const retryInterval = params.retryInterval || 1000;
 
-    const elementInfo = await findElement(tabId, xpath, cssSelector, {
+    const elementInfo = await findElementByXPath(tabId, xpath, {
       retryCount,
       retryInterval
     });
 
     if (!elementInfo) {
-      throw new Error(`Element not found with XPath: ${xpath} or CSS: ${cssSelector}`);
+      throw new Error(`Element not found with XPath: ${xpath}`);
+    }
+
+    // 检查元素是否可以点击
+    if (!elementInfo.canClick) {
+      const issues = [];
+      if (!elementInfo.isVisible) issues.push("not visible");
+      if (!elementInfo.isOnTop) issues.push("covered by other elements");
+      throw new Error(`Element cannot be clicked: ${issues.join(", ")}`);
     }
 
     await sendCommandToDebugger(tabId, "Input.dispatchMouseEvent", {

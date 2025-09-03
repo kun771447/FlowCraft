@@ -48,18 +48,23 @@ export const replay = () => {
 
     // 初始化回放状态
     isPlayingBack = true;
-    currentTabId = null;
 
     try {
       console.log(`[Playback] Starting playback of workflow: ${workflow.name}`);
       console.log(`[Playback] Total steps: ${workflow.steps.length}`);
 
+      // 获取当前活动标签页的ID
+      await chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        currentTabId = tabs[0]?.id || null;
+      });
+      console.log("currentTabId", currentTabId);
+
       // 如果有步骤且第一步有URL,则先导航到该URL
-      if (workflow.steps.length > 0 && workflow.steps[0].url) {
-        const initialUrl = workflow.steps[0].url;
-        console.log(`[Playback] Navigating to initial URL: ${initialUrl}`);
-        currentTabId = await navigateToUrl(initialUrl);
-      }
+      // if (workflow.steps.length > 0 && workflow.steps[0].url) {
+      //   const initialUrl = workflow.steps[0].url;
+      //   console.log(`[Playback] Navigating to initial URL: ${initialUrl}`);
+      //   currentTabId = await navigateToUrl(initialUrl);
+      // }
 
       // 计算步骤间的时间延迟,基于实际录制时的时间戳
       let previousTimestamp = workflow.steps[0]?.timestamp || Date.now();
@@ -126,7 +131,8 @@ export const replay = () => {
 
   // 监听来自其他部分的消息
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === "START_PLAYBACK") { // 开始回放
+    if (message.type === "START_PLAYBACK") {
+      // 开始回放
       (async () => {
         try {
           await startPlayback(message.payload.workflow);
@@ -136,10 +142,12 @@ export const replay = () => {
         }
       })();
       return true; // 保持消息通道开放以支持异步响应
-    } else if (message.type === "STOP_PLAYBACK") { // 停止回放
+    } else if (message.type === "STOP_PLAYBACK") {
+      // 停止回放
       stopPlayback();
       sendResponse({ success: true });
-    } else if (message.type === "GET_PLAYBACK_STATUS") { // 获取回放状态
+    } else if (message.type === "GET_PLAYBACK_STATUS") {
+      // 获取回放状态
       sendResponse(getPlaybackStatus());
     }
   });
