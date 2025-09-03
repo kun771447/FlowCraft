@@ -11,28 +11,28 @@ import {
 export const replay = () => {
   // 记录回放状态的变量
   let isPlayingBack = false; // 是否正在回放
-  let currentPlaybackTabId: number | null = null; // 当前回放所在的标签页ID
+  let currentTabId: number | null = null; // 当前回放所在的标签页ID
 
   // 根据动作名称和参数执行相应的浏览器操作
   async function execute_action(
     actionName: string,
     params: any
   ): Promise<void> {
-    if (!currentPlaybackTabId) throw new Error("No active tab for playback");
+    if (!currentTabId) throw new Error("No active tab for playback");
 
     // 根据动作类型调用相应的处理函数
     switch (actionName) {
       case "click": // 点击元素
-        await clickElement(params, currentPlaybackTabId);
+        await clickElement(params, currentTabId);
         break;
       case "scroll": // 滚动页面
-        await scrollElement(params, currentPlaybackTabId);
+        await scrollElement(params, currentTabId);
         break;
       case "input": // 输入文本
-        await inputText(params, currentPlaybackTabId);
+        await inputText(params, currentTabId);
         break;
       case "key_press": // 按键操作
-        await keyPress(params, currentPlaybackTabId);
+        await keyPress(params, currentTabId);
         break;
       default:
         console.warn(`[Playback] Unknown action: ${actionName}`);
@@ -48,7 +48,7 @@ export const replay = () => {
 
     // 初始化回放状态
     isPlayingBack = true;
-    currentPlaybackTabId = null;
+    currentTabId = null;
 
     try {
       console.log(`[Playback] Starting playback of workflow: ${workflow.name}`);
@@ -58,7 +58,7 @@ export const replay = () => {
       if (workflow.steps.length > 0 && workflow.steps[0].url) {
         const initialUrl = workflow.steps[0].url;
         console.log(`[Playback] Navigating to initial URL: ${initialUrl}`);
-        currentPlaybackTabId = await navigateToUrl(initialUrl);
+        currentTabId = await navigateToUrl(initialUrl);
       }
 
       // 计算步骤间的时间延迟,基于实际录制时的时间戳
@@ -100,7 +100,7 @@ export const replay = () => {
     } finally {
       // 重置回放状态
       isPlayingBack = false;
-      currentPlaybackTabId = null;
+      currentTabId = null;
     }
   }
 
@@ -108,7 +108,7 @@ export const replay = () => {
   function stopPlayback(): void {
     if (isPlayingBack) {
       isPlayingBack = false;
-      currentPlaybackTabId = null;
+      currentTabId = null;
       console.log(`[Playback] Playback stopped`);
     }
   }
@@ -120,7 +120,7 @@ export const replay = () => {
   } {
     return {
       isPlaying: isPlayingBack,
-      currentTabId: currentPlaybackTabId,
+      currentTabId: currentTabId,
     };
   }
 
