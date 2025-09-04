@@ -55,7 +55,7 @@ export const StoppedView: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b border-border">
+      <div className="flex flex-col justify-between p-4 border-b border-border gap-2">
         <h2 className="text-lg font-semibold">Recording Finished</h2>
         <div className="space-x-2">
           <Button variant="outline" size="sm" onClick={discardAndStartNew}>
@@ -69,7 +69,7 @@ export const StoppedView: React.FC = () => {
               !workflow || !workflow.steps || workflow.steps.length === 0
             }
           >
-            Playback
+            Replay
           </Button>
           <Button
             size="sm"
