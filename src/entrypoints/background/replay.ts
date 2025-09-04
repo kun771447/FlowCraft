@@ -8,11 +8,21 @@ import {
   navigateToUrl,
 } from "./action";
 
-export const replay = () => {
+// 获取当前活动标签页ID的函数
+async function getCurrentTabId(): Promise<number | null> {
+  try {
+    // 方法1: 查询当前活动标签页
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tabs[0]?.id || null;
+  } catch (error) {
+    console.error("获取当前标签页失败:", error);
+    return null;
+  }
+}
+
+export const replay = (currentTabId: number | null) => {
   // 记录回放状态的变量
   let isPlayingBack = false; // 是否正在回放
-  let currentTabId: number | null = null; // 当前回放所在的标签页ID
-
   // 根据动作名称和参数执行相应的浏览器操作
   async function execute_action(
     actionName: string,
@@ -50,14 +60,12 @@ export const replay = () => {
     isPlayingBack = true;
 
     try {
-      console.log(`[Playback] Starting playback of workflow: ${workflow.name}`);
-      console.log(`[Playback] Total steps: ${workflow.steps.length}`);
-
       // 获取当前活动标签页的ID
-      await chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        currentTabId = tabs[0]?.id || null;
-      });
-      console.log("currentTabId", currentTabId);
+      const tabId = await getCurrentTabId();
+      if (tabId) {
+        currentTabId = tabId;
+        console.log('初始化 currentTabId:', currentTabId);
+      }
 
       // 如果有步骤且第一步有URL,则先导航到该URL
       // if (workflow.steps.length > 0 && workflow.steps[0].url) {

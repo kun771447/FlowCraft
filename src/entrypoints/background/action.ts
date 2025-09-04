@@ -45,22 +45,22 @@ async function findElementByXPath(
   cssSelector: string,
   elementText: string,
   options: {
-    retryCount?: number;      // 重试次数，默认 3
-    retryInterval?: number;   // 重试间隔时间(ms)，默认 1000ms
+    retryCount?: number; // 重试次数，默认 3
+    retryInterval?: number; // 重试间隔时间(ms)，默认 1000ms
   } = {}
-): Promise<{ 
-  x: number; 
-  y: number; 
-  width: number; 
-  height: number; 
-  text: string; 
+): Promise<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
   tagName: string;
   isVisible: boolean;
   isOnTop: boolean;
   canClick: boolean;
 } | null> {
-  const { retryCount = 3, retryInterval = 1000 } = options;
-  
+  const { retryCount = 6, retryInterval = 1000 } = options;
+
   for (let attempt = 0; attempt <= retryCount; attempt++) {
     try {
       const result = await sendCommandToDebugger(tabId, "Runtime.evaluate", {
@@ -68,11 +68,20 @@ async function findElementByXPath(
           try {
             let element = null;
             
-            // 优先使用 cssSelector 查找元素，支持多元素文本匹配
-            if ('${elementText}' && '${cssSelector}') {
+            const result = document.evaluate(
+              '${xpath}', 
+              document, 
+              null, 
+              XPathResult.FIRST_ORDERED_NODE_TYPE, 
+              null
+            );
+            element = result.singleNodeValue;
+
+            // 使用 cssSelector 查找元素，支持多元素文本匹配
+            if (!element &&'${elementText}' && '${cssSelector}') {
               const elements = document.querySelectorAll('${cssSelector}');
               const targetText = '${elementText}';
-              
+
               if (elements.length > 0) {
                 if (targetText) {
                   // 如果提供了 elementText，查找文本匹配的元素
@@ -85,18 +94,6 @@ async function findElementByXPath(
                   }
                 }
               }
-            }
-            
-            // 如果 cssSelector 没找到元素，使用 XPath 作为后备
-            if (!element && '${xpath}') {
-              const result = document.evaluate(
-                '${xpath}', 
-                document, 
-                null, 
-                XPathResult.FIRST_ORDERED_NODE_TYPE, 
-                null
-              );
-              element = result.singleNodeValue;
             }
             
             if (!element) {
@@ -116,13 +113,10 @@ async function findElementByXPath(
             }
 
             // 检测函数：元素是否在顶层（未被遮挡）
-            function isElementOnTop(element) {
-              const rect = element.getBoundingClientRect();
-              const centerX = rect.left + rect.width / 2;
-              const centerY = rect.top + rect.height / 2;
-              
+            function isElementOnTop(x, y) {
               try {
-                const topEl = document.elementFromPoint(centerX, centerY);
+                const topEl = document.elementFromPoint(x, y);
+                console.log('topEl', topEl);
                 if (!topEl) return false;
 
                 // 检查是否是同一个元素或其子元素
@@ -140,47 +134,50 @@ async function findElementByXPath(
 
             // 获取元素位置
             const rect = element.getBoundingClientRect();
-            
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            console.log('element', element, x, y);
+
             // 执行检测
             const isVisible = isElementVisible(element);
-            const isOnTop = isVisible ? isElementOnTop(element) : false;
+            const isOnTop = isVisible ? isElementOnTop(x, y) : false;
 
-            console.log('elementInfo', isVisible, isOnTop);
             return {
               isVisible: isVisible,
               isOnTop: isOnTop,
               canClick: isVisible && isOnTop,
-              x: rect.left + rect.width / 2,
-              y: rect.top + rect.height / 2,
+              x: x,
+              y: y,
               width: rect.width,
               height: rect.height,
               text: element.textContent?.trim() || '',
               tagName: element.tagName.toLowerCase()
             };
           } catch (error) {
+            console.log('findElementByXPath error', error);
             return null;
           }
         })()`,
         returnByValue: true,
       });
 
-      console.log('result?.result?.value', result?.result?.value);
+      console.log("result?.result?.value", result?.result);
       if (result?.result?.value?.canClick) {
         return result.result.value;
       }
 
       // 如果不是最后一次尝试，等待后重试
       if (attempt < retryCount) {
-        await new Promise(resolve => setTimeout(resolve, retryInterval));
+        await new Promise((resolve) => setTimeout(resolve, retryInterval));
       }
     } catch (error) {
       // 如果不是最后一次尝试，等待后重试
       if (attempt < retryCount) {
-        await new Promise(resolve => setTimeout(resolve, retryInterval));
+        await new Promise((resolve) => setTimeout(resolve, retryInterval));
       }
     }
   }
-  
+
   return null;
 }
 
@@ -216,10 +213,16 @@ export async function clickElement(params: any, tabId: number): Promise<void> {
     const retryCount = params.retryCount || 3;
     const retryInterval = params.retryInterval || 1000;
 
-    const elementInfo = await findElementByXPath(tabId, xpath, cssSelector, elementText, {
-      retryCount,
-      retryInterval
-    });
+    const elementInfo = await findElementByXPath(
+      tabId,
+      xpath,
+      cssSelector,
+      elementText,
+      {
+        retryCount,
+        retryInterval,
+      }
+    );
 
     if (!elementInfo) {
       throw new Error(`Element not found with XPath: ${xpath}`);
@@ -263,44 +266,59 @@ export async function scrollElement(params: any, tabId: number): Promise<void> {
     const scrollY = params.scrollY || 0;
     const elementTag = params.elementTag || "";
     const xpath = params.xpath || "";
-    const cssSelector = params.cssSelector || "";
 
     const results = await chrome.scripting.executeScript({
       target: { tabId: tabId },
-      func: (scrollX, scrollY, elementTag, xpath, cssSelector) => {
+      func: async (
+        scrollX,
+        scrollY,
+        elementTag,
+        xpath,
+      ) => {
+        async function findElement(
+          xpath: string,
+        ): Promise<any> {
+          const maxAttempts = 3;
+          const interval = 1000;
+        
+          for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+              let element = null;
+        
+              const result = document.evaluate(
+                xpath,
+                document,
+                null,
+                XPathResult.FIRST_ORDERED_NODE_TYPE,
+                null
+              );
+              element = result.singleNodeValue;
+              if (element) {
+                return element;
+              }
+        
+              // 如果不是最后一次尝试，等待后重试
+              if (attempt < maxAttempts - 1) {
+                await new Promise((resolve) => setTimeout(resolve, interval));
+              }
+            } catch (error) {
+              console.log("findElement error", error);
+              // 如果不是最后一次尝试，等待后重试
+              if (attempt < maxAttempts - 1) {
+                await new Promise((resolve) => setTimeout(resolve, interval));
+              }
+            }
+          }
+        
+          return null;
+        }
+
         // 判断是否为页面滚动
         if (elementTag === "document" || !xpath) {
           window.scrollTo(scrollX, scrollY);
           return { success: true, message: "Page scrolled successfully" };
         }
-
-        // 元素滚动
-        let element = null;
-
-        if (xpath) {
-          try {
-            const result = document.evaluate(
-              xpath,
-              document,
-              null,
-              XPathResult.FIRST_ORDERED_NODE_TYPE,
-              null
-            );
-            element = result.singleNodeValue;
-          } catch (e) {
-            // XPath evaluation failed
-          }
-        }
-        console.log("scrollElement", xpath, element);
-
-        if (!element && cssSelector) {
-          try {
-            element = document.querySelector(cssSelector);
-          } catch (e) {
-            // CSS selector failed
-          }
-        }
-
+        const element = await findElement(xpath);
         if (element) {
           element.scrollLeft = scrollX;
           element.scrollTop = scrollY;
@@ -309,15 +327,11 @@ export async function scrollElement(params: any, tabId: number): Promise<void> {
           return { success: false, message: "Element not found" };
         }
       },
-      args: [scrollX, scrollY, elementTag, xpath, cssSelector],
+      args: [scrollX, scrollY, elementTag, xpath],
     });
 
     const result = results[0]?.result;
-    if (!result?.success) {
-      throw new Error(result?.message || "Scroll failed");
-    }
   } catch (error) {
-    throw error;
   }
 }
 
