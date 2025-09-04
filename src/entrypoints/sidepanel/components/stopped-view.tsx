@@ -62,7 +62,6 @@ export const StoppedView: React.FC = () => {
             Discard & Start New
           </Button>
           <Button
-            variant="secondary"
             size="sm"
             onClick={startPlayback}
             disabled={
