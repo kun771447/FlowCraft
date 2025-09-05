@@ -5,6 +5,7 @@ import ReactDOM from "react-dom/client";
 import "@/assets/tailwind.css";
 
 import { ErrorView } from "./components/error-view";
+import { Header } from "./components/header";
 import { InitialView } from "./components/initial-view";
 import { LoadingView } from "./components/logina-view";
 import { RecordingView } from "./components/recording-view";
@@ -38,6 +39,7 @@ const SidepanelApp: React.FC = () => {
     <React.StrictMode>
       <WorkflowProvider>
         <div className="h-screen flex flex-col">
+          <Header />
           <main className="flex-grow overflow-auto">
             <AppContent />
           </main>
