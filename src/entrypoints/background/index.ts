@@ -3,11 +3,16 @@ import { replay } from "./replay";
 
 export default defineBackground(() => {
   let currentTabId: number | null = null; // 当前回放所在的标签页ID
+  let currentUrl: string | null = null; // 当前回放所在的标签页URL
+  let activeInfo: any = null;
 
   // 监听标签页激活事件 (实时更新)
   chrome.tabs.onActivated.addListener((activeInfo) => {
+    activeInfo = activeInfo;
     currentTabId = activeInfo.tabId;
+    // currentUrl = activeInfo.url;
   });
+  console.log('activeInfo', activeInfo);
 
   recording();
   replay(currentTabId);

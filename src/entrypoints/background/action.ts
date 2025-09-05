@@ -161,7 +161,6 @@ async function findElementByXPath(
         returnByValue: true,
       });
 
-      console.log("result?.result?.value", result?.result);
       if (result?.result?.value?.canClick) {
         return result.result.value;
       }
