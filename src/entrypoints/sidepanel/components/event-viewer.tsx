@@ -112,8 +112,9 @@ const StepCard: React.FC<{
     switch (step.type) {
       case "click":
       case "input":
-      case "key_press": {
-        const s = step as ClickStep | InputStep | KeyPressStep; // Union type
+      case "key_press":
+      case "scroll": {
+        const s = step as ClickStep | InputStep | KeyPressStep | ScrollStep; // Union type
         specificInfo = (
           <>
             {(s as ClickStep | InputStep).frameUrl &&
@@ -138,6 +139,18 @@ const StepCard: React.FC<{
                 <strong>Element:</strong> {s.elementTag}
               </p>
             )}
+            {
+              ( s as ScrollStep)?.scrollX !== undefined && ( s as ScrollStep)?.scrollY !== undefined && ( 
+                <>
+                  <p>
+                    <strong>Scroll X:</strong> {(s as ScrollStep).scrollX}
+                  </p>
+                  <p>
+                    <strong>Scroll Y:</strong> {(s as ScrollStep).scrollY}
+                  </p>
+                </>
+              )
+            }
             {(s as ClickStep).elementText && (
               <p>
                 <strong>Text:</strong> {(s as ClickStep).elementText}
@@ -159,23 +172,6 @@ const StepCard: React.FC<{
       }
       case "navigation": {
         // Base info already has URL
-        break;
-      }
-      case "scroll": {
-        const s = step as ScrollStep;
-        specificInfo = (
-          <>
-            <p>
-              <strong>Target ID:</strong> {s.targetId}
-            </p>
-            <p>
-              <strong>Scroll X:</strong> {s.scrollX}
-            </p>
-            <p>
-              <strong>Scroll Y:</strong> {s.scrollY}
-            </p>
-          </>
-        );
         break;
       }
       default:

@@ -10,11 +10,14 @@ import { InitialView } from "./components/initial-view";
 import { LoadingView } from "./components/logina-view";
 import { RecordingView } from "./components/recording-view";
 import { StoppedView } from "./components/stopped-view";
+import { WorkflowManagerView } from "./components/workflow-manager-view";
 import { WorkflowProvider, useWorkflow } from "./context/workflow-provider";
 
 const AppContent: React.FC = () => {
   const { recordingStatus, isLoading, error } = useWorkflow();
 
+  // 默认显示工作流管理界面
+  // 只有在录制或处理录制结果时才切换到对应视图
   if (isLoading) {
     return <LoadingView />;
   }
@@ -23,6 +26,7 @@ const AppContent: React.FC = () => {
     return <ErrorView />;
   }
 
+  // 只在录制过程中显示录制相关界面
   switch (recordingStatus) {
     case "recording":
       return <RecordingView />;
@@ -30,7 +34,8 @@ const AppContent: React.FC = () => {
       return <StoppedView />;
     case "idle":
     default:
-      return <InitialView />;
+      // 默认显示工作流管理界面
+      return <WorkflowManagerView />;
   }
 };
 
