@@ -90,18 +90,18 @@ export const StoppedView: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900">
       {/* 状态提示区 */}
-      <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-b border-green-200 dark:border-green-700 p-4">
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-b border-green-200 dark:border-green-700 p-3 sm:p-4">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg font-semibold text-green-800 dark:text-green-200">
               录制完成
             </h3>
-            <p className="text-sm text-green-600 dark:text-green-300">
+            <p className="text-xs sm:text-sm text-green-600 dark:text-green-300">
               工作流已录制完成，包含 {workflow?.steps?.length || 0} 个步骤。使用顶部按钮进行保存、回放或导出操作。
             </p>
           </div>

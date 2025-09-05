@@ -161,7 +161,7 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-violet-50/30 dark:from-slate-900 dark:to-violet-950/30">
       {/* 搜索区 */}
-      <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+      <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <div className="relative">
           <svg 
             className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400"
@@ -181,14 +181,14 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
             placeholder="搜索工作流..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+            className="w-full pl-10 pr-4 py-2.5 sm:py-3 text-sm border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
           />
         </div>
       </div>
 
       {/* 工作流列表 - 最多显示3个，支持滑动 */}
       <div className="flex-none bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-        <div className="px-4 py-3">
+        <div className="px-3 sm:px-4 py-3">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               工作流列表
@@ -198,7 +198,7 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
             </span>
           </div>
         </div>
-        <div className="max-h-60 overflow-y-auto px-4 pb-4">
+        <div className="max-h-60 overflow-y-auto px-3 sm:px-4 pb-4">
           {filteredWorkflows.length === 0 ? (
             <div className="text-center py-8">
               <svg className="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +220,7 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
                     setSelectedWorkflowId(workflow.id);
                     setSelectedWorkflow(workflow);
                   }}
-                  className={`group border rounded-xl p-4 cursor-pointer transition-all duration-200 min-h-[80px] ${
+                  className={`group border rounded-xl p-3 sm:p-4 cursor-pointer transition-all duration-200 min-h-[60px] sm:min-h-[80px] ${
                     selectedWorkflowId === workflow.id
                       ? 'border-violet-300 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 dark:border-violet-500 shadow-md'
                       : 'border-slate-200/80 bg-white dark:bg-slate-700/50 dark:border-slate-600/80 hover:border-violet-200 dark:hover:border-violet-600/50 hover:bg-gradient-to-br hover:from-slate-50 hover:to-violet-50/30 dark:hover:from-slate-700 dark:hover:to-violet-900/10 hover:shadow-sm'
@@ -280,24 +280,24 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
 
       {/* 工作流详情 */}
       <div className="flex-1 bg-white dark:bg-slate-800">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-white to-violet-50/50 dark:from-slate-800 dark:to-violet-900/10">
+        <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-white to-violet-50/50 dark:from-slate-800 dark:to-violet-900/10">
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
               工作流详情
             </h3>
           </div>
         </div>
         
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           {selectedWorkflow ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* 基本信息 */}
-              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 border border-slate-200 dark:border-slate-600">
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 sm:p-4 border border-slate-200 dark:border-slate-600">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     {isEditing ? (
@@ -372,7 +372,7 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
                 </div>
                 
                 {!isEditing && (
-                  <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs">
                     <div>
                       <span className="text-slate-500">步骤数量：</span>
                       <span className="font-medium text-slate-900 dark:text-slate-100">{selectedWorkflow.steps?.length || 0}</span>
@@ -385,7 +385,7 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
                       <span className="text-slate-500">创建时间：</span>
                       <span className="font-medium text-slate-900 dark:text-slate-100">{formatDate(selectedWorkflow.createdAt)}</span>
                     </div>
-                    <div>
+                    <div className="hidden sm:block">
                       <span className="text-slate-500">更新时间：</span>
                       <span className="font-medium text-slate-900 dark:text-slate-100">{formatDate(selectedWorkflow.updatedAt)}</span>
                     </div>
@@ -395,9 +395,9 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
 
               {/* 步骤列表 */}
               {selectedWorkflow.steps && selectedWorkflow.steps.length > 0 && (
-                <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 border border-slate-200 dark:border-slate-600">
+                <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 sm:p-4 border border-slate-200 dark:border-slate-600">
                   <h5 className="font-semibold text-slate-900 dark:text-slate-100 mb-3">步骤预览</h5>
-                  <div className="max-h-32 overflow-y-auto space-y-2">
+                  <div className="max-h-28 sm:max-h-32 overflow-y-auto space-y-2">
                     {selectedWorkflow.steps.slice(0, 5).map((step, index) => (
                       <div key={index} className="text-xs p-2 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500">
                         <span className="font-medium text-slate-600 dark:text-slate-300">
