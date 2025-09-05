@@ -10,7 +10,7 @@ interface StoredWorkflow extends Workflow {
 }
 
 export const StoppedView: React.FC = () => {
-  const { discardAndStartNew, workflow } = useWorkflow();
+  const { workflow } = useWorkflow();
   const [searchQuery, setSearchQuery] = useState("");
   const [savedWorkflows, setSavedWorkflows] = useState<StoredWorkflow[]>([]);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
@@ -56,24 +56,6 @@ export const StoppedView: React.FC = () => {
     });
   };
 
-  // 运行工作流
-  const handleRunWorkflow = (workflow: StoredWorkflow) => {
-    chrome.runtime.sendMessage(
-      {
-        type: "START_PLAYBACK",
-        payload: { workflow },
-      },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("Error starting playback:", chrome.runtime.lastError);
-        } else if (response.success) {
-          console.log("Playback started successfully");
-        } else {
-          console.error("Playback failed:", response.error);
-        }
-      }
-    );
-  };
 
   // 删除工作流
   const handleDeleteWorkflow = async (workflowId: string) => {
@@ -104,158 +86,25 @@ export const StoppedView: React.FC = () => {
     }
   };
 
-  const downloadJson = () => {
-    if (!workflow) return;
-
-    // Sanitize workflow name for filename
-    const safeName = workflow.name
-      ? workflow.name.replace(/[^a-z0-9\.\-\_]/gi, "_").toLowerCase()
-      : "workflow";
-
-    const blob = new Blob([JSON.stringify(workflow, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    // Generate filename e.g., my_workflow_name_2023-10-27_10-30-00.json
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[:.]/g, "-")
-      .slice(0, 19);
-    // Use sanitized name instead of domain
-    a.download = `${safeName}_${timestamp}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const startPlayback = () => {
-    if (!workflow) return;
-
-    chrome.runtime.sendMessage(
-      {
-        type: "START_PLAYBACK",
-        payload: { workflow },
-      },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("Error starting playback:", chrome.runtime.lastError);
-        } else if (response.success) {
-          console.log("Playback started successfully");
-        } else {
-          console.error("Playback failed:", response.error);
-        }
-      }
-    );
-  };
-
-  const saveToManager = async () => {
-    if (!workflow) return;
-
-    try {
-      // 检查 chrome.storage 是否可用
-      if (!chrome?.storage?.local) {
-        console.error('Chrome storage API not available');
-        return;
-      }
-
-      // 使用 Promise 版本的 chrome.storage API
-      const result = await chrome.storage.local.get('flowcraft-workflows');
-      const workflows = result['flowcraft-workflows'] || [];
-      
-      // 创建新的工作流对象
-      const newWorkflow = {
-        ...workflow,
-        id: `workflow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
-      
-      workflows.push(newWorkflow);
-      
-      await chrome.storage.local.set({ 'flowcraft-workflows': workflows });
-      
-      // 重新加载工作流列表
-      setSavedWorkflows(workflows);
-    } catch (error) {
-      console.error('Failed to save workflow:', error);
-      
-      // 降级方案：下载 JSON 文件
-      const safeName = workflow.name
-        ? workflow.name.replace(/[^a-z0-9\.\-\_]/gi, "_").toLowerCase()
-        : "workflow";
-      
-      const blob = new Blob([JSON.stringify(workflow, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const timestamp = new Date()
-        .toISOString()
-        .replace(/[:.]/g, "-")
-        .slice(0, 19);
-      a.download = `${safeName}_${timestamp}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      alert('保存失败，已自动下载 JSON 文件作为备份');
-    }
-  };
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900">
-      {/* 操作按钮区 */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4">
-        <div className="grid grid-cols-2 gap-3">
-          {/* 主要操作 */}
-          <button
-            onClick={saveToManager}
-            disabled={!workflow || !workflow.steps || workflow.steps.length === 0}
-            className="flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:text-slate-500 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 disabled:cursor-not-allowed"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+      {/* 状态提示区 */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-b border-green-200 dark:border-green-700 p-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span>保存工作流</span>
-          </button>
-          
-          <button
-            onClick={startPlayback}
-            disabled={!workflow || !workflow.steps || workflow.steps.length === 0}
-            className="flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:text-slate-500 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 disabled:cursor-not-allowed"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-            <span>立即重播</span>
-          </button>
-          
-          {/* 次要操作 */}
-          <button
-            onClick={discardAndStartNew}
-            className="flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl font-medium transition-all duration-200"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>重新录制</span>
-          </button>
-          
-          <button
-            onClick={downloadJson}
-            disabled={!workflow || !workflow.steps || workflow.steps.length === 0}
-            className="flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 disabled:bg-slate-50 disabled:text-slate-400 dark:bg-slate-700 dark:hover:bg-slate-600 dark:disabled:bg-slate-800 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl font-medium transition-all duration-200 disabled:cursor-not-allowed"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span>导出 JSON</span>
-          </button>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
+              录制完成
+            </h3>
+            <p className="text-sm text-green-600 dark:text-green-300">
+              工作流已录制完成，包含 {workflow?.steps?.length || 0} 个步骤。使用顶部按钮进行保存、回放或导出操作。
+            </p>
+          </div>
         </div>
       </div>
       
@@ -341,25 +190,13 @@ export const StoppedView: React.FC = () => {
                       </div>
                       
                       {/* 操作按钮 */}
-                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRunWorkflow(savedWorkflow);
-                          }}
-                          className="p-2 text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                          title="运行工作流"
-                        >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z"/>
-                          </svg>
-                        </button>
+                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteWorkflow(savedWorkflow.id);
                           }}
-                          className="p-2 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                          className="p-2 text-red-500 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                           title="删除工作流"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

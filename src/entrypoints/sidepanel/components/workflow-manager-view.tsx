@@ -15,7 +15,10 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const { startRecording } = useWorkflow();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingName, setEditingName] = useState("");
+  const [editingDescription, setEditingDescription] = useState("");
+  const { startRecording, setSelectedWorkflow } = useWorkflow();
 
   // 加载已保存的工作流
   useEffect(() => {
@@ -34,6 +37,7 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
         // 自动选择第一个工作流
         if (savedWorkflows.length > 0 && !selectedWorkflowId) {
           setSelectedWorkflowId(savedWorkflows[0].id);
+          setSelectedWorkflow(savedWorkflows[0]);
         }
       } catch (error) {
         console.error('Failed to load workflows:', error);
@@ -72,24 +76,6 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
     });
   };
 
-  // 运行工作流
-  const handleRunWorkflow = (workflow: StoredWorkflow) => {
-    chrome.runtime.sendMessage(
-      {
-        type: "START_PLAYBACK",
-        payload: { workflow },
-      },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("Error starting playback:", chrome.runtime.lastError);
-        } else if (response.success) {
-          console.log("Playback started successfully");
-        } else {
-          console.error("Playback failed:", response.error);
-        }
-      }
-    );
-  };
 
   // 删除工作流
   const handleDeleteWorkflow = async (workflowId: string) => {
@@ -113,11 +99,55 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
       // 如果删除的是当前选中的工作流，清除选中状态
       if (selectedWorkflowId === workflowId) {
         setSelectedWorkflowId(null);
+        setSelectedWorkflow(null);
       }
     } catch (error) {
       console.error('Failed to delete workflow:', error);
       alert('删除失败，请稍后重试');
     }
+  };
+
+  // 开始编辑工作流
+  const handleStartEdit = (workflow: StoredWorkflow) => {
+    setEditingName(workflow.name || "");
+    setEditingDescription(workflow.description || "");
+    setIsEditing(true);
+  };
+
+  // 保存编辑
+  const handleSaveEdit = async () => {
+    if (!selectedWorkflow) return;
+
+    try {
+      const result = await chrome.storage.local.get('flowcraft-workflows');
+      const savedWorkflows = result['flowcraft-workflows'] || [];
+      
+      const updatedWorkflows = savedWorkflows.map((w: StoredWorkflow) => {
+        if (w.id === selectedWorkflow.id) {
+          return {
+            ...w,
+            name: editingName.trim() || w.name,
+            description: editingDescription.trim() || w.description,
+            updatedAt: Date.now(),
+          };
+        }
+        return w;
+      });
+
+      await chrome.storage.local.set({ 'flowcraft-workflows': updatedWorkflows });
+      setWorkflows(updatedWorkflows);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update workflow:', error);
+      alert('保存失败，请稍后重试');
+    }
+  };
+
+  // 取消编辑
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingName("");
+    setEditingDescription("");
   };
 
   if (isLoading) {
@@ -129,23 +159,9 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900">
-      {/* 顶部操作区 */}
-      <div className="p-4 border-b border-slate-200 dark:border-slate-700 space-y-3 bg-white dark:bg-slate-800">
-        {/* 录制按钮 */}
-        <div className="flex justify-center">
-          <button
-            onClick={startRecording}
-            className="w-full bg-rose-600 hover:bg-rose-700 text-white px-4 py-3 rounded-xl font-medium transition-colors flex items-center justify-center space-x-2"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="6" />
-            </svg>
-            <span>开始录制工作流</span>
-          </button>
-        </div>
-        
-        {/* 搜索框 */}
+    <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-violet-50/30 dark:from-slate-900 dark:to-violet-950/30">
+      {/* 搜索区 */}
+      <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <div className="relative">
           <svg 
             className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400"
@@ -165,7 +181,7 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
             placeholder="搜索工作流..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
           />
         </div>
       </div>
@@ -200,11 +216,14 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
               {filteredWorkflows.slice(0, 3).map((workflow) => (
                 <div
                   key={workflow.id}
-                  onClick={() => setSelectedWorkflowId(workflow.id)}
-                  className={`group bg-slate-50 dark:bg-slate-700/50 border rounded-xl p-4 cursor-pointer transition-all duration-200 min-h-[80px] ${
+                  onClick={() => {
+                    setSelectedWorkflowId(workflow.id);
+                    setSelectedWorkflow(workflow);
+                  }}
+                  className={`group border rounded-xl p-4 cursor-pointer transition-all duration-200 min-h-[80px] ${
                     selectedWorkflowId === workflow.id
-                      ? 'border-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 dark:border-indigo-600'
-                      : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 hover:bg-white dark:hover:bg-slate-700'
+                      ? 'border-violet-300 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 dark:border-violet-500 shadow-md'
+                      : 'border-slate-200/80 bg-white dark:bg-slate-700/50 dark:border-slate-600/80 hover:border-violet-200 dark:hover:border-violet-600/50 hover:bg-gradient-to-br hover:from-slate-50 hover:to-violet-50/30 dark:hover:from-slate-700 dark:hover:to-violet-900/10 hover:shadow-sm'
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -230,25 +249,13 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRunWorkflow(workflow);
-                        }}
-                        className="p-1.5 text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                        title="运行工作流"
-                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
-                      </button>
+                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteWorkflow(workflow.id);
                         }}
-                        className="p-1.5 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                        className="p-1.5 text-red-500 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                         title="删除工作流"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -273,11 +280,13 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
 
       {/* 工作流详情 */}
       <div className="flex-1 bg-white dark:bg-slate-800">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-white to-violet-50/50 dark:from-slate-800 dark:to-violet-900/10">
           <div className="flex items-center space-x-2">
-            <svg className="w-5 h-5 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+            <div className="w-6 h-6 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               工作流详情
             </h3>
@@ -289,30 +298,99 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
             <div className="space-y-4">
               {/* 基本信息 */}
               <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 border border-slate-200 dark:border-slate-600">
-                <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                  {selectedWorkflow.name || "未命名工作流"}
-                </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-                  {selectedWorkflow.description || "无描述"}
-                </p>
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="text-slate-500">步骤数量：</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-100">{selectedWorkflow.steps?.length || 0}</span>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            工作流名称
+                          </label>
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                            placeholder="输入工作流名称"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            描述
+                          </label>
+                          <textarea
+                            value={editingDescription}
+                            onChange={(e) => setEditingDescription(e.target.value)}
+                            rows={2}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 resize-none"
+                            placeholder="输入工作流描述"
+                          />
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={handleSaveEdit}
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded-lg transition-colors flex items-center justify-center space-x-1"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>保存</span>
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="flex-1 bg-slate-500 hover:bg-slate-600 text-white text-xs px-3 py-2 rounded-lg transition-colors flex items-center justify-center space-x-1"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            <span>取消</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                          {selectedWorkflow.name || "未命名工作流"}
+                        </h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                          {selectedWorkflow.description || "无描述"}
+                        </p>
+                      </>
+                    )}
                   </div>
-                  <div>
-                    <span className="text-slate-500">版本：</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-100">{selectedWorkflow.version || "1.0.0"}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">创建时间：</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-100">{formatDate(selectedWorkflow.createdAt)}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">更新时间：</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-100">{formatDate(selectedWorkflow.updatedAt)}</span>
-                  </div>
+                  {!isEditing && (
+                    <button
+                      onClick={() => handleStartEdit(selectedWorkflow)}
+                      className="ml-2 p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                      title="编辑工作流信息"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
+                
+                {!isEditing && (
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <span className="text-slate-500">步骤数量：</span>
+                      <span className="font-medium text-slate-900 dark:text-slate-100">{selectedWorkflow.steps?.length || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">版本：</span>
+                      <span className="font-medium text-slate-900 dark:text-slate-100">{selectedWorkflow.version || "1.0.0"}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">创建时间：</span>
+                      <span className="font-medium text-slate-900 dark:text-slate-100">{formatDate(selectedWorkflow.createdAt)}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">更新时间：</span>
+                      <span className="font-medium text-slate-900 dark:text-slate-100">{formatDate(selectedWorkflow.updatedAt)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 步骤列表 */}
@@ -343,49 +421,6 @@ export const WorkflowManagerView: React.FC<WorkflowManagerViewProps> = () => {
                 </div>
               )}
 
-              {/* 操作按钮 */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleRunWorkflow(selectedWorkflow)}
-                  className="flex-1 flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-3 rounded-xl transition-all duration-200"
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
-                  </svg>
-                  <span>运行工作流</span>
-                </button>
-                <button
-                  onClick={() => {
-                    // 下载工作流 JSON
-                    const blob = new Blob([JSON.stringify(selectedWorkflow, null, 2)], {
-                      type: "application/json",
-                    });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `${selectedWorkflow.name || 'workflow'}.json`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="flex items-center justify-center space-x-2 px-3 py-3 text-sm bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>导出</span>
-                </button>
-                <button
-                  onClick={() => handleDeleteWorkflow(selectedWorkflow.id)}
-                  className="flex items-center justify-center space-x-2 px-3 py-3 text-sm bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  <span>删除</span>
-                </button>
-              </div>
             </div>
           ) : (
             <div className="text-center py-12">

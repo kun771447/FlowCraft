@@ -10,6 +10,7 @@ import { Workflow } from "../../../lib/workflow-types"; // Adjust path as needed
 
 type WorkflowState = {
   workflow: Workflow | null;
+  selectedWorkflow: any | null; // 选中的已保存工作流
   recordingStatus: string; // e.g., 'idle', 'recording', 'stopped', 'error'
   currentEventIndex: number;
   isLoading: boolean;
@@ -22,7 +23,10 @@ type WorkflowContextType = WorkflowState & {
   discardAndStartNew: () => void;
   selectEvent: (index: number) => void;
   fetchWorkflowData: (isPolling?: boolean) => void; // Add optional flag
-  handleReplay: () => void
+  handleReplay: () => void;
+  saveWorkflow: () => Promise<void>;
+  updateWorkflowInfo: (name: string, description: string) => void;
+  setSelectedWorkflow: (workflow: any | null) => void;
 };
 
 const WorkflowContext = createContext<WorkflowContextType | undefined>(
@@ -39,6 +43,7 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({
   children,
 }) => {
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<any | null>(null);
   const [recordingStatus, setRecordingStatus] = useState<string>("idle"); // 'idle', 'recording', 'stopped', 'error'
   const [currentEventIndex, setCurrentEventIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -210,19 +215,78 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({
   }, []);
 
   const handleReplay = () => {
-    chrome.runtime.sendMessage({ type: "START_PLAYBACK", payload: { workflow: workflow } }, (response) => {
+    // 优先使用选中的工作流，如果没有选中则使用当前录制的工作流
+    const workflowToReplay = selectedWorkflow || workflow;
+    if (!workflowToReplay) {
+      setError("没有可回放的工作流");
+      return;
+    }
+    
+    chrome.runtime.sendMessage({ type: "START_PLAYBACK", payload: { workflow: workflowToReplay } }, (response) => {
       if (chrome.runtime.lastError) {
         console.error("Error starting playback:", chrome.runtime.lastError);
+        setError(`回放失败: ${chrome.runtime.lastError.message}`);
       } else if (response.success) {
         console.log("Playback started successfully");
       } else {
         console.error("Playback failed:", response.error);
+        setError(`回放失败: ${response.error}`);
       }
     });
-  }
+  };
+
+  const saveWorkflow = useCallback(async () => {
+    if (!workflow || !workflow.steps || workflow.steps.length === 0) {
+      setError("没有可保存的工作流");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // 获取现有的工作流
+      const result = await chrome.storage.local.get('flowcraft-workflows');
+      const existingWorkflows = result['flowcraft-workflows'] || [];
+
+      // 创建新的工作流对象
+      const newWorkflow = {
+        id: `workflow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        ...workflow,
+        name: workflow.name || `工作流-${new Date().toLocaleString('zh-CN')}`,
+        description: workflow.description || "自动生成的工作流",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      // 添加到列表
+      const updatedWorkflows = [newWorkflow, ...existingWorkflows];
+
+      // 保存到存储
+      await chrome.storage.local.set({ 'flowcraft-workflows': updatedWorkflows });
+
+      console.log("工作流保存成功:", newWorkflow);
+    } catch (error: any) {
+      console.error("保存工作流失败:", error);
+      setError(`保存失败: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [workflow]);
+
+  const updateWorkflowInfo = useCallback((name: string, description: string) => {
+    if (!workflow) return;
+    
+    setWorkflow({
+      ...workflow,
+      name,
+      description,
+    });
+  }, [workflow]);
 
   const value = {
     workflow,
+    selectedWorkflow,
     recordingStatus,
     currentEventIndex,
     isLoading,
@@ -232,7 +296,10 @@ export const WorkflowProvider: React.FC<WorkflowProviderProps> = ({
     discardAndStartNew,
     selectEvent,
     fetchWorkflowData,
-    handleReplay
+    handleReplay,
+    saveWorkflow,
+    updateWorkflowInfo,
+    setSelectedWorkflow
   };
 
   return (
